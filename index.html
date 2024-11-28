@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Analysis Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.3.0/axios.min.js"></script>
+    <style>
+        body {
+            padding-top: 20px;
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .loading {
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Stock Analysis Dashboard</h1>
+        <div class="mb-4">
+            <label for="stockSelector" class="form-label">Select Stock:</label>
+            <select id="stockSelector" class="form-select">
+                <option value="sbin">State Bank Of India</option>
+                <option value="banknifty">banknifty</option>
+                <option value="nifty">nifty</option>
+                <option value="tcs">tcs</option>
+            </select>
+        </div>
+        <div id="dataContainer">
+            <p class="loading">Loading data...</p>
+        </div>
+    </div>
+
+    <script>
+        const dataContainer = document.getElementById('dataContainer');
+        const stockSelector = document.getElementById('stockSelector');
+        let refreshInterval;
+
+        // Fetch stock data from JSON file
+        const fetchStockData = (stockName) => {
+            dataContainer.innerHTML = '<p class="loading">Loading data...</p>';
+            const jsonPath = `${stockName}_data/${stockName}.json`; // Build file path
+
+            // Fetch data from JSON file
+            axios.get(jsonPath)
+                .then(response => {
+                    renderData(response.data);
+                })
+                .catch(error => {
+                    console.error(`Error fetching data for ${stockName}:`, error);
+                    dataContainer.innerHTML = `<p class="text-danger text-center">Error loading data for ${stockName}. Please check your JSON file or network connection.</p>`;
+                });
+        };
+
+        // Render the stock data in a responsive layout
+        const renderData = (data) => {
+            dataContainer.innerHTML = `
+                <h3 class="mb-3">Dominant Trend: <span class="badge bg-primary">${data.dominant_trend}</span></h3>
+
+                <h4>Stock Recommendation</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Action</th>
+                                <th>Entry Price</th>
+                                <th>Target Price</th>
+                                <th>Stop Loss</th>
+                                <th>Confidence</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>${data.stock_recommendation.action}</td>
+                                <td>${data.stock_recommendation.entry_price}</td>
+                                <td>${data.stock_recommendation.target_price}</td>
+                                <td>${data.stock_recommendation.stop_loss}</td>
+                                <td>${data.stock_recommendation.confidence}</td>
+                                <td>${data.stock_recommendation.reason}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Support Levels</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Strike Price</th>
+                                <th>Strength (%)</th>
+                                <th>Breakout Probability</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.support_levels.map(level => `
+                                <tr>
+                                    <td>${level.strike_price}</td>
+                                    <td>${level.strength_percentage}</td>
+                                    <td>${level.probability_of_breakout}</td>
+                                    <td>${level.reason}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Resistance Levels</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Strike Price</th>
+                                <th>Strength (%)</th>
+                                <th>Breakout Probability</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.resistance_levels.map(level => `
+                                <tr>
+                                    <td>${level.strike_price}</td>
+                                    <td>${level.strength_percentage}</td>
+                                    <td>${level.probability_of_breakout}</td>
+                                    <td>${level.reason}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Option Recommendation</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Action</th>
+                                <th>Strike Price</th>
+                                <th>Entry Price</th>
+                                <th>Target Premium</th>
+                                <th>Stop Loss Premium</th>
+                                <th>Confidence</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>${data.option_recommendation.action}</td>
+                                <td>${data.option_recommendation.strike_price}</td>
+                                <td>${data.option_recommendation.entry_price}</td>
+                                <td>${data.option_recommendation.target_premium}</td>
+                                <td>${data.option_recommendation.stop_loss_premium}</td>
+                                <td>${data.option_recommendation.confidence}</td>
+                                <td>${data.option_recommendation.reason}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        };
+
+        // Update stock data on selection change
+        stockSelector.addEventListener('change', () => {
+            clearInterval(refreshInterval);
+            fetchStockData(stockSelector.value);
+            refreshInterval = setInterval(() => fetchStockData(stockSelector.value), 60000);
+        });
+
+        // Initial stock data fetch and refresh interval
+        fetchStockData(stockSelector.value);
+        refreshInterval = setInterval(() => fetchStockData(stockSelector.value), 60000);
+    </script>
+</body>
+</html>
