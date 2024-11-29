@@ -200,15 +200,32 @@ def save_data_with_history(symbol, raw_data, analysis):
 
     print(f"Data and analysis saved for {symbol}.")
 
-# Main scheduler
-def schedule_task(symbols, interval_minutes=4):
+
+def calculate_next_quarter():
+    now = datetime.now()
+    next_minute = ((now.minute // 15) + 1) * 15
+    next_hour = now.hour
+    if next_minute == 60:
+        next_minute = 0
+        next_hour += 1
+    next_run = now.replace(hour=next_hour, minute=next_minute, second=0, microsecond=0)
+    if next_run < now:  # If the calculated time is in the past, move to the next quarter
+        next_run += timedelta(minutes=15)
+    return next_run
+
+
+def schedule_task(symbols):
     print("Starting scheduled task...")
-    next_run = datetime.now()
+
+    next_run = calculate_next_quarter()
+    print(f"First run scheduled at {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
 
     while True:
         now = datetime.now()
         if now >= next_run:
+            print(f"Running tasks at {now.strftime('%Y-%m-%d %H:%M:%S')}...")
             for symbol in symbols:
+                time.sleep(15)
                 print(f"Processing {symbol}...")
                 raw_data = fetch_option_chain_data(symbol)
                 if not raw_data:
@@ -227,12 +244,15 @@ def schedule_task(symbols, interval_minutes=4):
                 # Save data and analysis with history
                 save_data_with_history(symbol, raw_data, analysis)
 
-            # Schedule the next run
-            next_run += timedelta(minutes=interval_minutes)
+            # Calculate the next run time
+            next_run = calculate_next_quarter()
             print(f"Next run scheduled at {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
 
         time.sleep(10)
 
 if __name__ == "__main__":
-    symbols = ["banknifty","sbin","nifty","tcs"]
-    schedule_task(symbols, interval_minutes=15)
+    symbols = ["banknifty", "nifty", "infy", "wipro","tatamotors",
+                "axisbank","sbin","icicibank",
+                "kotakbank","sunpharma"]
+            
+    schedule_task(symbols)
